@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Monthly Results</h3>
+<form method="get" action="/result" class="mb-3">
+    <input type="month" name="month" required>
+    <button class="btn btn-secondary">Show</button>
+</form>
+
+{% if month %}
+<h5>Results for {{ month }}</h5>
+<table class="table table-bordered">
+    <tr><th>Date</th><th>Person</th><th>Item</th><th>Amount</th></tr>
+    {% for e in expenses %}
+    <tr>
+        <td>{{e.date.strftime('%Y-%m-%d')}}</td>
+        <td>{{e.person}}</td>
+        <td>{{e.item}}</td>
+        <td>₹{{'%.2f' % e.amount}}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h5>Totals:</h5>
+<ul>
+{% for p, t in totals.items() %}
+<li>{{p}}: ₹{{'%.2f' % t}}</li>
+{% endfor %}
+</ul>
+
+<p><b>Grand Total:</b> ₹{{'%.2f' % grand_total}}</p>
+<p><b>Average per person:</b> ₹{{'%.2f' % average}}</p>
+
+<h5>Settlement:</h5>
+<ul>
+{% for s in settlement %}
+<li>{{ s }}</li>
+{% endfor %}
+</ul>
+
+<a href="/generate_pdf/{{month}}" class="btn btn-outline-primary">Download PDF</a>
+{% endif %}
+{% endblock %}
