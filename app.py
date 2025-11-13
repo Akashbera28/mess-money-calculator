@@ -12,24 +12,28 @@ from reportlab.lib.styles import getSampleStyleSheet
 # -----------------------
 app = Flask(__name__)
 
-# Use DATABASE_URL if available (Render provides this), otherwise fallback to sqlite
+# Use DATABASE_URL if available (Render provides this), otherwise fallback to internal URL
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
-    # For some platforms the URL may start with postgres://, SQLAlchemy expects postgresql://
+    # Replace postgres:// with postgresql:// for SQLAlchemy if needed
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mess.db"
+    # Internal/local database URL
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "postgresql://mess_db_user:V6hjbmXz2S0qUkm5yJVGFw12tsN4ZA5n@dpg-d4ao4cripnbc73aeft9g-a/mess_db"
+    )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# initialize db
+# Initialize SQLAlchemy
 db.init_app(app)
 
+# Persons list
 PERSONS = ["Akash", "Suman", "Rohit", "Palash"]
 
-# create DB tables once at startup (works for small projects)
+# Create DB tables and pdf directory at startup
 with app.app_context():
     db.create_all()
     os.makedirs("pdfs", exist_ok=True)
@@ -41,6 +45,7 @@ with app.app_context():
 @app.route("/")
 def index():
     return render_template("index.html")
+
 
 @app.route("/person", methods=["GET", "POST"])
 def person():
@@ -54,6 +59,7 @@ def person():
                 raise ValueError()
         except Exception:
             return jsonify({"error": "Invalid amount"}), 400
+
         new_expense = Expense(
             person=data["person"],
             item=data["item"],
@@ -66,17 +72,21 @@ def person():
         return jsonify({"message": "Expense added successfully!"})
     return render_template("person.html", persons=PERSONS)
 
+
 @app.route("/result")
 def result():
     month = request.args.get("month")
     if not month:
         return render_template("result.html", persons=PERSONS, expenses=[], month=None)
+
     year, mon = map(int, month.split("-"))
     expenses = Expense.query.filter(
         db.extract("year", Expense.date) == year,
         db.extract("month", Expense.date) == mon,
     ).all()
+
     totals, grand_total, average, differences, settlement = calculate_summary(expenses, PERSONS)
+
     return render_template(
         "result.html",
         persons=PERSONS,
@@ -89,6 +99,7 @@ def result():
         month=month,
     )
 
+
 @app.route("/generate_pdf/<month>")
 def generate_pdf(month):
     year, mon = map(int, month.split("-"))
@@ -96,6 +107,7 @@ def generate_pdf(month):
         db.extract("year", Expense.date) == year,
         db.extract("month", Expense.date) == mon,
     ).all()
+
     totals, grand_total, average, differences, settlement = calculate_summary(expenses, PERSONS)
 
     os.makedirs("pdfs", exist_ok=True)
@@ -132,9 +144,8 @@ def generate_pdf(month):
     return send_file(pdf_path, as_attachment=True)
 
 # -----------------------
-# Run - respects PORT env var
+# Run app
 # -----------------------
 if __name__ == "__main__":
-    import os
     PORT = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=PORT, debug=True)
