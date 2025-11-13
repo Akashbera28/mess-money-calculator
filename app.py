@@ -12,17 +12,19 @@ from reportlab.lib.styles import getSampleStyleSheet
 # -----------------------
 app = Flask(__name__)
 
-# Use DATABASE_URL if available (Render provides this), otherwise fallback to internal URL
+# Use DATABASE_URL if available (Render provides this), otherwise fallback to external Render DB URL
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 if DATABASE_URL:
-    # Replace postgres:// with postgresql:// for SQLAlchemy if needed
+    # Fix for SQLAlchemy: replace postgres:// with postgresql:// if needed
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 else:
-    # Internal/local database URL
+    # Local dev → use external database URL (Render Postgres)
     app.config["SQLALCHEMY_DATABASE_URI"] = (
-        "postgresql://mess_db_user:V6hjbmXz2S0qUkm5yJVGFw12tsN4ZA5n@dpg-d4ao4cripnbc73aeft9g-a/mess_db"
+        "postgresql://mess_db_user:3MNtYiov3SXAPpsmhxrSnl52MmJgOfRv"
+        "@dpg-d4ard8ripnbc73agl3rg-a.singapore-postgres.render.com/mess_db_gsya"
     )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
